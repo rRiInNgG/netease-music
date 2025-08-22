@@ -97,7 +97,11 @@ func setCookiesHeader(w http.ResponseWriter, r *http.Request) {
 	// 从请求中获取cookies并设置到全局cookie jar
 	cookieJar := util.GetGlobalCookieJar()
 	if cookieJar != nil {
-		u, _ := url.Parse("https://music.163.com")
+		u, err := url.Parse("https://music.163.com")
+		if err != nil {
+			log.Printf("Failed to parse URL: %v", err)
+			return
+		}
 
 		// 从请求中获取cookies并添加到cookie jar
 		requestCookies := r.Cookies()
@@ -261,8 +265,18 @@ func qrLoginPageHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/qr-login", http.StatusTemporaryRedirect)
 }
 
+// readHTMLTemplate 读取HTML模板文件
+func readHTMLTemplate(filename string) ([]byte, error) {
+	htmlContent, err := os.ReadFile(filename)
+	if err != nil {
+		log.Printf("Failed to read HTML template %s: %v", filename, err)
+		return nil, err
+	}
+	return htmlContent, nil
+}
+
 // qrLoginFrontendHandler 提供二维码登录前端页面
-func qrLoginFrontendHandler(w http.ResponseWriter, r *http.Request) {
+func qrLoginFrontendHandler(w http.ResponseWriter, _ *http.Request) {
 	// 先检查是否已经登录
 	userAccountService := service.UserAccountService{}
 	_, accountResult := userAccountService.AccountInfo()
@@ -271,7 +285,7 @@ func qrLoginFrontendHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(accountResult, &accountResMap); err == nil {
 		if code, ok := accountResMap["code"].(float64); ok && code == 200 {
 			// 用户已经登录，提供已登录页面
-			htmlContent, err := os.ReadFile("api/templates/logged_in.html")
+			htmlContent, err := readHTMLTemplate("api/templates/logged_in.html")
 			if err != nil {
 				http.Error(w, "无法加载已登录页面", http.StatusInternalServerError)
 				return
@@ -285,7 +299,7 @@ func qrLoginFrontendHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 用户未登录，提供原来的二维码登录页面
 	// 从文件中读取HTML模板
-	htmlContent, err := os.ReadFile("api/templates/qr_login.html")
+	htmlContent, err := readHTMLTemplate("api/templates/qr_login.html")
 	if err != nil {
 		http.Error(w, "无法加载登录页面", http.StatusInternalServerError)
 		return
