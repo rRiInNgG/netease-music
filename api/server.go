@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -134,14 +133,14 @@ func captchaSentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.CaptchaSentService{Cellphone: phone}
-	_, result := service.CaptchaSent()
+	svc := service.CaptchaSentService{Cellphone: phone}
+	_, result := svc.CaptchaSent()
 
 	// 登录成功后将cookie写入响应
 	setCookiesHeader(w, r)
 
 	log.Printf("[OK] /api/captcha/sent?phone=%s", phone)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // loginCellphoneHandler 手机号登录
@@ -159,33 +158,33 @@ func loginCellphoneHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 密码登录
 	if password != "" {
-		service := service.LoginCellphoneService{
+		svc := service.LoginCellphoneService{
 			Phone:    phone,
 			Password: password,
 		}
-		_, result := service.LoginCellphone()
+		_, result := svc.LoginCellphone()
 
 		// 登录成功后将cookie写入响应
 		setCookiesHeader(w, r)
 
 		log.Printf("[OK] /api/login/cellphone?phone=%s&password=***", phone)
-		w.Write(result)
+		_, _ = w.Write(result)
 		return
 	}
 
 	// 验证码登录
 	if captcha != "" {
-		service := service.CaptchaVerifyService{
+		svc := service.CaptchaVerifyService{
 			Cellphone: phone,
 			Captcha:   captcha,
 		}
-		_, result := service.CaptchaVerify()
+		_, result := svc.CaptchaVerify()
 
 		// 登录成功后将cookie写入响应
 		setCookiesHeader(w, r)
 
 		log.Printf("[OK] /api/login/cellphone?phone=%s&captcha=%s", phone, captcha)
-		w.Write(result)
+		_, _ = w.Write(result)
 		return
 	}
 
@@ -201,14 +200,14 @@ func qrKeyHandler(w http.ResponseWriter, r *http.Request) {
 
 	setCORSHeaders(w)
 
-	service := service.LoginQRService{}
-	_, _, _ = service.GetKey()
+	svc := service.LoginQRService{}
+	_, _, _ = svc.GetKey()
 
 	// 构造包含unikey的响应
 	response := map[string]interface{}{
 		"code": 200,
 		"data": map[string]interface{}{
-			"unikey": service.UniKey,
+			"unikey": svc.UniKey,
 		},
 	}
 
@@ -220,7 +219,7 @@ func qrKeyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("[OK] /api/login/qr/key")
-	w.Write(respBytes)
+	_, _ = w.Write(respBytes)
 }
 
 // qrCheckHandler 检查二维码扫描状态
@@ -238,8 +237,8 @@ func qrCheckHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.LoginQRService{UniKey: key}
-	_, result := service.CheckQR()
+	svc := service.LoginQRService{UniKey: key}
+	_, result := svc.CheckQR()
 
 	// 如果二维码扫描成功，将cookie写入响应
 	var resMap map[string]interface{}
@@ -251,7 +250,7 @@ func qrCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("[OK] /api/login/qr/check?key=%s", key)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // qrLoginPageHandler 二维码登录页面
@@ -272,28 +271,28 @@ func qrLoginFrontendHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(accountResult, &accountResMap); err == nil {
 		if code, ok := accountResMap["code"].(float64); ok && code == 200 {
 			// 用户已经登录，提供已登录页面
-			htmlContent, err := ioutil.ReadFile("api/templates/logged_in.html")
+			htmlContent, err := os.ReadFile("api/templates/logged_in.html")
 			if err != nil {
 				http.Error(w, "无法加载已登录页面", http.StatusInternalServerError)
 				return
 			}
 
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write(htmlContent)
+			_, _ = w.Write(htmlContent)
 			return
 		}
 	}
 
 	// 用户未登录，提供原来的二维码登录页面
 	// 从文件中读取HTML模板
-	htmlContent, err := ioutil.ReadFile("api/templates/qr_login.html")
+	htmlContent, err := os.ReadFile("api/templates/qr_login.html")
 	if err != nil {
 		http.Error(w, "无法加载登录页面", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(htmlContent)
+	_, _ = w.Write(htmlContent)
 }
 
 // loginStatusHandler 登录状态
@@ -301,11 +300,11 @@ func loginStatusHandler(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	setCookiesHeader(w, r)
 
-	service := service.UserAccountService{}
-	_, result := service.AccountInfo()
+	svc := service.UserAccountService{}
+	_, result := svc.AccountInfo()
 
 	log.Printf("[OK] /api/login/status")
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // logoutHandler 退出登录
@@ -313,11 +312,11 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	setCookiesHeader(w, r)
 
-	service := service.LogoutService{}
-	_, result := service.Logout()
+	svc := service.LogoutService{}
+	_, result := svc.Logout()
 
 	log.Printf("[OK] /api/logout")
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // userDetailHandler 用户详情
@@ -331,11 +330,11 @@ func userDetailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.UserDetailService{Uid: uid}
-	_, result := service.UserDetail()
+	svc := service.UserDetailService{Uid: uid}
+	_, result := svc.UserDetail()
 
 	log.Printf("[OK] /api/user/detail?uid=%s", uid)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // userPlaylistHandler 用户歌单
@@ -349,11 +348,11 @@ func userPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.UserPlaylistService{Uid: uid}
-	_, result := service.UserPlaylist()
+	svc := service.UserPlaylistService{Uid: uid}
+	_, result := svc.UserPlaylist()
 
 	log.Printf("[OK] /api/user/playlist?uid=%s", uid)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // songUrlHandler 歌曲播放地址
@@ -367,11 +366,11 @@ func songUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.SongUrlService{ID: id}
-	_, result := service.SongUrl()
+	svc := service.SongUrlService{ID: id}
+	_, result := svc.SongUrl()
 
 	log.Printf("[OK] /api/song/url?id=%s", id)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // songDetailHandler 歌曲详情
@@ -385,11 +384,11 @@ func songDetailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.SongDetailService{Ids: ids}
-	_, result := service.SongDetail()
+	svc := service.SongDetailService{Ids: ids}
+	_, result := svc.SongDetail()
 
 	log.Printf("[OK] /api/song/detail?ids=%s", ids)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // playlistDetailHandler 歌单详情
@@ -404,11 +403,11 @@ func playlistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 直接用那全部的，项目本身做了实现，原接口一次只能 1000
-	service := service.PlaylistTrackAllService{Id: id}
-	_, result := service.AllTracks()
+	svc := service.PlaylistTrackAllService{Id: id}
+	_, result := svc.AllTracks()
 
 	log.Printf("[OK] /api/playlist/detail?id=%s", id)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // recommendResourceHandler 推荐资源
@@ -416,11 +415,11 @@ func recommendResourceHandler(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	setCookiesHeader(w, r)
 
-	service := service.RecommendResourceService{}
-	_, result := service.RecommendResource()
+	svc := service.RecommendResourceService{}
+	_, result := svc.RecommendResource()
 
 	log.Printf("[OK] /api/recommend/resource")
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // recommendSongsHandler 推荐歌曲
@@ -428,11 +427,11 @@ func recommendSongsHandler(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	setCookiesHeader(w, r)
 
-	service := service.RecommendSongsService{}
-	_, result := service.RecommendSongs()
+	svc := service.RecommendSongsService{}
+	_, result := svc.RecommendSongs()
 
 	log.Printf("[OK] /api/recommend/songs")
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // searchHandler 搜索
@@ -446,11 +445,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := service.SearchService{S: keywords}
-	_, result := service.Search()
+	svc := service.SearchService{S: keywords}
+	_, result := svc.Search()
 
 	log.Printf("[OK] /api/search?keywords=%s", keywords)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 // bannerHandler 首页横幅
@@ -458,11 +457,11 @@ func bannerHandler(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	setCookiesHeader(w, r)
 
-	service := service.BannerService{}
-	_, result := service.Banner()
+	svc := service.BannerService{}
+	_, result := svc.Banner()
 
 	log.Printf("[OK] /api/banner")
-	w.Write(result)
+	_, _ = w.Write(result)
 }
 
 func main() {
