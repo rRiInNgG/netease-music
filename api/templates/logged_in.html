@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>网易云音乐</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            max-width: 400px; 
+            margin: 0 auto; 
+        }
+        .success { 
+            color: #28a745; 
+            font-size: 18px; 
+            margin-bottom: 20px; 
+        }
+        .btn { 
+            background-color: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            display: inline-block; 
+            margin: 10px; 
+        }
+        .btn:hover { 
+            background-color: #0056b3; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success">您已经登录了网易云音乐</div>
+        <a href="/api/login/status" class="btn">返回首页</a>
+        <a href="/api/logout" class="btn">退出登录</a>
+    </div>
+</body>
+</html>
