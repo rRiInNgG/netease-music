@@ -69,6 +69,7 @@ func (s *Server) setupRoutes() {
 	// 音乐相关接口
 	http.HandleFunc("/api/song/url", songUrlHandler)
 	http.HandleFunc("/api/song/detail", songDetailHandler)
+	http.HandleFunc("/api/song/wiki/summary", songWikiSummaryHandler)
 
 	// 歌单相关接口
 	http.HandleFunc("/api/playlist/detail", playlistDetailHandler)
@@ -357,15 +358,23 @@ func userPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	setCookiesHeader(w, r)
 
 	uid := r.URL.Query().Get("uid")
+	limit := r.URL.Query().Get("limit")
+	offset := r.URL.Query().Get("offset")
 	if uid == "" {
 		http.Error(w, "uid is required", http.StatusBadRequest)
 		return
 	}
+	if limit == "" {
+		limit = "50"
+	}
+	if offset == "" {
+		offset = "0"
+	}
 
-	svc := service.UserPlaylistService{Uid: uid}
+	svc := service.UserPlaylistService{Uid: uid, Limit: limit, Offset: offset}
 	_, result := svc.UserPlaylist()
 
-	log.Printf("[OK] /api/user/playlist?uid=%s", uid)
+	log.Printf("[OK] /api/user/playlist?uid=%s&limit=%s&offset=%s", uid, limit, offset)
 	_, _ = w.Write(result)
 }
 
@@ -475,6 +484,23 @@ func bannerHandler(w http.ResponseWriter, r *http.Request) {
 	_, result := svc.Banner()
 
 	log.Printf("[OK] /api/banner")
+	_, _ = w.Write(result)
+}
+
+// song_wiki_summary  曲目百科
+func songWikiSummaryHandler(w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w)
+	setCookiesHeader(w, r)
+
+	songId := r.URL.Query().Get("songId")
+	if songId == "" {
+		http.Error(w, "songId is required", http.StatusBadRequest)
+		return
+	}
+
+	svc := service.NewSongWikiSummaryService(nil)
+	_, result := svc.GetSongWikiSummary(songId)
+	log.Printf("[OK] /api/song/wiki/summary?songId=%s", songId)
 	_, _ = w.Write(result)
 }
 
