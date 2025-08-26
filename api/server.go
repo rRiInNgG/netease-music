@@ -167,7 +167,15 @@ func loginCellphoneHandler(w http.ResponseWriter, r *http.Request) {
 			Phone:    phone,
 			Password: password,
 		}
-		_, result := svc.LoginCellphone()
+		code, result, err := svc.LoginCellphone()
+		if err != nil {
+			log.Printf("Login failed: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		if code != 200 {
+			log.Printf("Login service error, code: %d", code)
+		}
 
 		// 登录成功后将cookie写入响应
 		setCookiesHeader(w, r)
@@ -206,7 +214,7 @@ func qrKeyHandler(w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 
 	svc := service.LoginQRService{}
-	_, _, _ = svc.GetKey()
+	_, _, _, _ = svc.GetKey()
 
 	// 构造包含unikey的响应
 	response := map[string]interface{}{
@@ -243,15 +251,17 @@ func qrCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	svc := service.LoginQRService{UniKey: key}
-	_, result := svc.CheckQR()
+	code, result, err := svc.CheckQR()
+
+	if err != nil {
+		log.Printf("Check QR failed: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	// 如果二维码扫描成功，将cookie写入响应
-	var resMap map[string]interface{}
-	if err := json.Unmarshal(result, &resMap); err == nil {
-		if code, ok := resMap["code"].(float64); ok && code == 803 {
-			// 登录成功，设置cookie
-			setCookiesHeader(w, r)
-		}
+	if code == 803 {
+		setCookiesHeader(w, r)
 	}
 
 	log.Printf("[OK] /api/login/qr/check?key=%s", key)
@@ -328,7 +338,15 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	setCookiesHeader(w, r)
 
 	svc := service.LogoutService{}
-	_, result := svc.Logout()
+	code, result, err := svc.Logout()
+	if err != nil {
+		log.Printf("Logout failed: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if code != 200 {
+		log.Printf("Logout service error, code: %d", code)
+	}
 
 	log.Printf("[OK] /api/logout")
 	_, _ = w.Write(result)
