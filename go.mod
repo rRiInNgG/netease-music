@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/cnsilvan/UnblockNeteaseMusic v0.0.0-20240731043907-91afd9361e8b
-	github.com/forgoer/openssl v1.7.0
+	github.com/forgoer/openssl v1.8.0
 	github.com/go-musicfox/requests v0.2.3
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 )
@@ -18,4 +18,4 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 )
 
-replace github.com/cnsilvan/UnblockNeteaseMusic => github.com/go-musicfox/UnblockNeteaseMusic v0.1.5
+replace github.com/cnsilvan/UnblockNeteaseMusic => github.com/go-musicfox/UnblockNeteaseMusic v0.1.6
