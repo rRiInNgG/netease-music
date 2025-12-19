@@ -31,9 +31,26 @@
             border-radius: 4px; 
             display: inline-block; 
             margin: 10px; 
+            border: none;
+            cursor: pointer;
         }
         .btn:hover { 
             background-color: #0056b3; 
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success-msg {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
     </style>
 </head>
@@ -41,7 +58,7 @@
     <div class="container">
         <div class="success">您已经登录了网易云音乐</div>
         <a href="/api/login/status" class="btn">返回首页</a>
-        <a href="/api/logout" class="btn">退出登录</a>
+        <a href="/api/logout" class="btn" style="background-color: #dc3545;">退出登录</a>
     </div>
 </body>
 </html>

@@ -287,7 +287,7 @@ func readHTMLTemplate(filename string) ([]byte, error) {
 }
 
 // qrLoginFrontendHandler 提供二维码登录前端页面
-func qrLoginFrontendHandler(w http.ResponseWriter, _ *http.Request) {
+func qrLoginFrontendHandler(w http.ResponseWriter, r *http.Request) {
 	// 先检查是否已经登录
 	userAccountService := service.UserAccountService{}
 	_, accountResult := userAccountService.AccountInfo()
@@ -295,16 +295,19 @@ func qrLoginFrontendHandler(w http.ResponseWriter, _ *http.Request) {
 	var accountResMap map[string]interface{}
 	if err := json.Unmarshal(accountResult, &accountResMap); err == nil {
 		if code, ok := accountResMap["code"].(float64); ok && code == 200 {
-			// 用户已经登录，提供已登录页面
-			htmlContent, err := readHTMLTemplate("api/templates/logged_in.html")
-			if err != nil {
-				http.Error(w, "无法加载已登录页面", http.StatusInternalServerError)
+			// 检查是否有有效的用户信息
+			if profile, ok := accountResMap["profile"].(map[string]interface{}); ok && len(profile) > 0 {
+				// 用户已经登录，提供已登录页面
+				htmlContent, err := readHTMLTemplate("api/templates/logged_in.html")
+				if err != nil {
+					http.Error(w, "无法加载已登录页面", http.StatusInternalServerError)
+					return
+				}
+
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				_, _ = w.Write(htmlContent)
 				return
 			}
-
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write(htmlContent)
-			return
 		}
 	}
 
@@ -334,11 +337,17 @@ func loginStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 // logoutHandler 退出登录
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	// 支持GET和POST方法
+	if r.Method != "GET" && r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	setCORSHeaders(w)
 	setCookiesHeader(w, r)
 
 	svc := service.LogoutService{}
-	code, result, err := svc.Logout()
+	code, _, err := svc.Logout()
 	if err != nil {
 		log.Printf("Logout failed: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -348,8 +357,46 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Logout service error, code: %d", code)
 	}
 
+	// 清除所有与认证相关的 cookies
+	cookies := []string{"MUSIC_U", "__csrf", "NMTID", "_ntes_nuid", "__remember_me"}
+	for _, cookieName := range cookies {
+		cookie := &http.Cookie{
+			Name:   cookieName,
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		}
+		http.SetCookie(w, cookie)
+	}
+
+	// 从全局 Cookie Jar 中清除认证相关的 cookies
+	cookiejar := util.GetGlobalCookieJar()
+	_, _ = url.Parse("https://music.163.com")
+	if cookiejar != nil {
+		// 创建空值的 cookies 来覆盖原有的认证信息
+		emptyCookies := make(map[string]string)
+		for _, cookieName := range cookies {
+			emptyCookies[cookieName] = ""
+		}
+		util.AddCookiesToJar(cookiejar, emptyCookies, "https://music.163.com")
+	}
+
 	log.Printf("[OK] /api/logout")
-	_, _ = w.Write(result)
+
+	// 如果是 AJAX 请求，返回 JSON 响应
+	if r.Header.Get("X-Requested-With") == "XMLHttpRequest" || r.Header.Get("Content-Type") == "application/json" {
+		response := map[string]interface{}{
+			"code":   200,
+			"result": "success",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 如果是普通的页面请求，重定向到登录页面
+	http.Redirect(w, r, "/qr-login", http.StatusTemporaryRedirect)
 }
 
 // userDetailHandler 用户详情
